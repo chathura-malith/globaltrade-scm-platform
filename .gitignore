@@ -1,0 +1,54 @@
+# ==============================================================================
+# Maven & Build Artifacts
+# ==============================================================================
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Archive Artifacts
+*.jar
+*.war
+*.ear
+*.rar
+*.nar
+
+# ==============================================================================
+# IntelliJ IDEA / Antigravity IDE / JetBrains
+# ==============================================================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+cmake-build-*/
+
+
+# ==============================================================================
+# Application Server Logs & Runtime (GlassFish, Payara, WildFly)
+# ==============================================================================
+*.log
+logs/
+server.log
+derby.log
+glassfish/domains/*/logs/
+glassfish/domains/*/generated/
+glassfish/domains/*/osgi-cache/
+
+# ==============================================================================
+# Database / OS / Temp Files
+# ==============================================================================
+*.sql.bak
+*.db
+.DS_Store
+Thumbs.db
+ehcache/
+crashpad/
