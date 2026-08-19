@@ -57,6 +57,7 @@
                             <groupId>com.globaltrade</groupId>
                             <artifactId>globaltrade-web</artifactId>
                             <bundleFileName>globaltrade-web.war</bundleFileName>
+                            <contextRoot>/globaltrade</contextRoot>
                         </webModule>
                         <jarModule>
                             <groupId>com.globaltrade</groupId>
