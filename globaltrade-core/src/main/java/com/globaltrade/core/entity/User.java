@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User{
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,6 +28,12 @@ public class User{
 
     @Column(name = "password_hash", length = 255, nullable = false)
     private String passwordHash;
+
+    @Column(name = "full_name", length = 100, nullable = false)
+    private String fullName;
+
+    @Column(name = "organization_name", length = 100, nullable = false)
+    private String organizationName;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", length = 30, nullable = false)
