@@ -11,9 +11,9 @@ import java.util.logging.Logger;
 
 @Singleton
 @Startup
-public class RefreshTokenCleanupScheduler {
+public class RefreshTokenCleanupSchedulerBean {
 
-    private static final Logger LOGGER = Logger.getLogger(RefreshTokenCleanupScheduler.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RefreshTokenCleanupSchedulerBean.class.getName());
 
     @PersistenceContext(unitName = "GlobalTradePU")
     private EntityManager em;

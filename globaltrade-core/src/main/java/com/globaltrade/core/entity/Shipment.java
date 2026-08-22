@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "shipments")
@@ -58,15 +60,29 @@ public class Shipment {
     @Column(name = "cargo_volume_cbm")
     private Double cargoVolumeCbm;
 
-    @Column(name = "latitude")
+    @Column(name = "current_latitude")
     private Double latitude;
 
-    @Column(name = "longitude")
+    @Column(name = "current_longitude")
     private Double longitude;
+
+    @Column(name = "estimated_delivery_date")
+    private LocalDateTime estimatedDeliveryDate;
+
+    @Column(name = "actual_delivery_date")
+    private LocalDateTime actualDeliveryDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdBy;
+
+    @OneToMany(mappedBy = "shipment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ShipmentItem> items = new ArrayList<>();
+
+    @OneToMany(mappedBy = "shipment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ShipmentCheckpoint> checkpoints = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
