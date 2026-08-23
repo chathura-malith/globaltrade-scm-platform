@@ -1,11 +1,14 @@
 package com.globaltrade.web.controller;
 
+import com.globaltrade.core.dto.request.BatchCarrierSyncRequestDto;
 import com.globaltrade.core.dto.request.ShipmentCheckpointRequestDto;
 import com.globaltrade.core.dto.request.ShipmentRequestDto;
+import com.globaltrade.core.dto.response.BatchCarrierSyncResponseDto;
 import com.globaltrade.core.dto.response.ShipmentCheckpointResponseDto;
 import com.globaltrade.core.dto.response.ShipmentTrackNoResponseDto;
 import com.globaltrade.core.dto.response.ShipmentTrackingResponseDto;
 import com.globaltrade.core.enums.ShipmentStatus;
+import com.globaltrade.core.service.CarrierIntegrationService;
 import com.globaltrade.core.service.ShipmentService;
 import com.globaltrade.core.util.StandardResponseDto;
 import jakarta.annotation.security.DeclareRoles;
@@ -30,6 +33,9 @@ public class ShipmentController {
 
     @EJB
     private ShipmentService shipmentService;
+
+    @EJB
+    private CarrierIntegrationService carrierIntegrationService;
 
     @POST
     @RolesAllowed({"SYSTEM_ADMIN", "ADMIN", "LOGISTICS_COORDINATOR"})
@@ -107,10 +113,27 @@ public class ShipmentController {
                 .build()).build();
     }
 
+    @POST
+    @Path("/carrier-sync/batch")
+    @RolesAllowed({"SYSTEM_ADMIN", "ADMIN", "LOGISTICS_COORDINATOR"})
+    public Response batchCarrierSync(@Valid @NotNull BatchCarrierSyncRequestDto request,
+                                     @Context SecurityContext securityContext) {
+        String username = getAuthenticatedUsername(securityContext);
+        BatchCarrierSyncResponseDto response = carrierIntegrationService.processCarrierBatchSync(request, username);
+
+        return Response.ok(StandardResponseDto.builder()
+                .code(Response.Status.OK.getStatusCode())
+                .message("Carrier batch sync processed successfully")
+                .data(response)
+                .build()).build();
+    }
+
     private String getAuthenticatedUsername(SecurityContext securityContext) {
         if (securityContext != null && securityContext.getUserPrincipal() != null) {
             return securityContext.getUserPrincipal().getName();
         }
         return "SYSTEM_USER";
     }
+
+
 }
