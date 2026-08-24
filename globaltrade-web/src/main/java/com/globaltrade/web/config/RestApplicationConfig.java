@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @ApplicationPath("/api/v1")
-@DeclareRoles({"SYSTEM_ADMIN", "ADMIN", "USER", "VENDOR", "LOGISTICS_COORDINATOR", "CUSTOMS_OFFICER"})
+@DeclareRoles({"SYSTEM_ADMIN", "ADMIN", "WAREHOUSE_MANAGER", "VENDOR", "LOGISTICS_COORDINATOR", "CUSTOMS_OFFICER"})
 public class RestApplicationConfig extends Application {
     @Override
     public Map<String, Object> getProperties() {

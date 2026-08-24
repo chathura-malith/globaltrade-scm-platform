@@ -3,6 +3,7 @@ package com.globaltrade.ejb.session;
 import com.globaltrade.core.dto.request.AddressRequestDto;
 import com.globaltrade.core.dto.request.ShipmentCheckpointRequestDto;
 import com.globaltrade.core.dto.request.ShipmentRequestDto;
+import com.globaltrade.core.dto.request.StockOperationRequestDto;
 import com.globaltrade.core.dto.response.*;
 import com.globaltrade.core.entity.Address;
 import com.globaltrade.core.entity.Shipment;
@@ -15,16 +16,13 @@ import com.globaltrade.core.exception.InvalidInputException;
 import com.globaltrade.core.exception.InvalidShipmentStateException;
 import com.globaltrade.core.exception.SecurityAuthenticationException;
 import com.globaltrade.core.exception.ShipmentNotFoundException;
+import com.globaltrade.core.service.InventoryService;
 import com.globaltrade.core.service.ShipmentService;
 import com.globaltrade.ejb.interceptor.LogisticsAuditInterceptor;
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.ejb.Stateless;
-import jakarta.ejb.TransactionAttribute;
-import jakarta.ejb.TransactionAttributeType;
-import jakarta.ejb.TransactionManagement;
-import jakarta.ejb.TransactionManagementType;
+import jakarta.ejb.*;
 import jakarta.interceptor.Interceptors;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -46,6 +44,9 @@ public class ShipmentSessionBean implements ShipmentService {
     @PersistenceContext(unitName = "GlobalTradePU")
     private EntityManager em;
 
+    @EJB
+    private InventoryService inventoryService;
+
     private static final String TRACKING_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -58,6 +59,12 @@ public class ShipmentSessionBean implements ShipmentService {
 
         User creator = findUserByUsername(username);
         String trackingNumber = generateUniqueTrackingNumber();
+
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            for (var itemDto : request.getItems()) {
+                inventoryService.reserveStock(itemDto.getSku(), itemDto.getQuantity(), username);
+            }
+        }
 
         Address origin = Address.builder()
                 .street(request.getOriginAddress().getStreet())
@@ -92,6 +99,7 @@ public class ShipmentSessionBean implements ShipmentService {
         List<ShipmentItem> items = request.getItems().stream()
                 .map(itemDto -> ShipmentItem.builder()
                         .shipment(shipment)
+                        .sku(itemDto.getSku())
                         .itemName(itemDto.getItemName())
                         .hsCode(itemDto.getHsCode())
                         .quantity(itemDto.getQuantity())
@@ -157,6 +165,12 @@ public class ShipmentSessionBean implements ShipmentService {
 
         validateUserRoleForStatus(user.getRole(), request.getStatus());
 
+        ShipmentStatus previousStatus = shipment.getStatus();
+        ShipmentStatus newStatus = request.getStatus();
+
+        // Stock transition handling (DISPATCHED / CANCELLED)
+        handleInventoryStateTransition(shipment, previousStatus, newStatus, username);
+
         ShipmentCheckpoint checkpoint = ShipmentCheckpoint.builder()
                 .shipment(shipment)
                 .locationName(request.getLocationName())
@@ -167,7 +181,7 @@ public class ShipmentSessionBean implements ShipmentService {
                 .updatedBy(user)
                 .build();
 
-        shipment.setStatus(request.getStatus());
+        shipment.setStatus(newStatus);
         if (request.getLatitude() != null) {
             shipment.setLatitude(request.getLatitude());
         }
@@ -175,7 +189,7 @@ public class ShipmentSessionBean implements ShipmentService {
             shipment.setLongitude(request.getLongitude());
         }
 
-        if (request.getStatus() == ShipmentStatus.DELIVERED) {
+        if (newStatus == ShipmentStatus.DELIVERED) {
             shipment.setActualDeliveryDate(LocalDateTime.now());
         }
 
@@ -233,6 +247,11 @@ public class ShipmentSessionBean implements ShipmentService {
             throw new InvalidShipmentStateException("Delivered shipment status cannot be modified");
         }
 
+        ShipmentStatus previousStatus = shipment.getStatus();
+
+        // Stock transition handling (DISPATCHED / CANCELLED)
+        handleInventoryStateTransition(shipment, previousStatus, newStatus, username);
+
         shipment.setStatus(newStatus);
         if (newStatus == ShipmentStatus.DELIVERED) {
             shipment.setActualDeliveryDate(LocalDateTime.now());
@@ -256,6 +275,25 @@ public class ShipmentSessionBean implements ShipmentService {
         }
 
         return mapToTrackingResponse(shipment);
+    }
+
+    private void handleInventoryStateTransition(Shipment shipment, ShipmentStatus previousStatus, ShipmentStatus newStatus, String username) {
+        if (previousStatus == newStatus || shipment.getItems() == null || shipment.getItems().isEmpty()) {
+            return;
+        }
+
+        // 1. Shipment Cancel වූ විට -> Reserved Quantity එක නැවත Available Quantity එකට Release කිරීම
+        if (newStatus == ShipmentStatus.CANCELLED && previousStatus == ShipmentStatus.CREATED) {
+            for (ShipmentItem item : shipment.getItems()) {
+                inventoryService.releaseStock(item.getSku(), item.getQuantity(), username);
+            }
+        }
+        // 2. Shipment Dispatch වූ විට -> Reserved Quantity එක System එකෙන් Deduct කිරීම (Warehouse Outbound)
+        else if (newStatus == ShipmentStatus.DISPATCHED && previousStatus == ShipmentStatus.CREATED) {
+            for (ShipmentItem item : shipment.getItems()) {
+                inventoryService.deductReservedStock(item.getSku(), item.getQuantity(), username);
+            }
+        }
     }
 
     private Shipment findShipmentByTrackingNumber(String trackingNumber) {
@@ -332,6 +370,7 @@ public class ShipmentSessionBean implements ShipmentService {
         List<ShipmentItemResponseDto> itemDtos = s.getItems().stream()
                 .map(item -> ShipmentItemResponseDto.builder()
                         .id(item.getId())
+                        .sku(item.getSku())
                         .itemName(item.getItemName())
                         .hsCode(item.getHsCode())
                         .quantity(item.getQuantity())

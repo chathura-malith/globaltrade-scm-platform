@@ -18,6 +18,9 @@ import java.math.BigDecimal;
 @Builder
 public class ShipmentItemRequestDto implements Serializable {
 
+    @NotBlank(message = "SKU must be specified for inventory deduction")
+    private String sku;
+
     @NotBlank(message = "Item name is required")
     private String itemName;
 
