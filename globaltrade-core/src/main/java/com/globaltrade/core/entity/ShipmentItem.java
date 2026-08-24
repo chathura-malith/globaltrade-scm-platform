@@ -23,6 +23,9 @@ public class ShipmentItem {
     @JoinColumn(name = "shipment_id", nullable = false)
     private Shipment shipment;
 
+    @Column(name = "sku", length = 60, nullable = false)
+    private String sku;
+
     @Column(name = "item_name", length = 150, nullable = false)
     private String itemName;
 

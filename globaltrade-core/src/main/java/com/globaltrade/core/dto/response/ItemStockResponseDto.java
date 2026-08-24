@@ -7,17 +7,21 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ShipmentItemResponseDto implements Serializable {
+public class ItemStockResponseDto implements Serializable {
     private Long id;
     private String sku;
     private String itemName;
-    private String hsCode;
-    private Integer quantity;
+    private String warehouseCode;
+    private Integer availableQuantity;
+    private Integer reservedQuantity;
+    private Integer reorderThreshold;
+    private Integer reorderQuantity;
     private BigDecimal unitPrice;
-    private BigDecimal declaredValue;
+    private LocalDateTime updatedAt;
 }

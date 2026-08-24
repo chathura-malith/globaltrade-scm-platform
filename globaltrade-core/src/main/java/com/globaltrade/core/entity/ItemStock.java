@@ -3,6 +3,9 @@ package com.globaltrade.core.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "item_stocks")
 @Getter
@@ -37,7 +40,23 @@ public class ItemStock {
     @Builder.Default
     private Integer reorderThreshold = 10;
 
+    @Column(name = "reorder_quantity", nullable = false)
+    @Builder.Default
+    private Integer reorderQuantity = 50;
+
+    @Column(name = "unit_price", precision = 12, scale = 2, nullable = false)
+    private BigDecimal unitPrice;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Version
     @Column(name = "version")
     private Long version;
+
+    @PrePersist
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

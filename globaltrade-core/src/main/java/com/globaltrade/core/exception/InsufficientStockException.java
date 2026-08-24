@@ -6,6 +6,10 @@ import jakarta.ejb.ApplicationException;
 public class InsufficientStockException extends BaseApplicationException {
 
     public InsufficientStockException(String message) {
-        super(message, 409);
+        super(message, 400);
+    }
+
+    public InsufficientStockException(String message, int statusCode) {
+        super(message, statusCode);
     }
 }
