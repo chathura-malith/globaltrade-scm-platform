@@ -12,6 +12,7 @@ import jakarta.persistence.PersistenceContext;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -47,52 +48,62 @@ public class InventorySchedulerBean {
             }
 
             for (ItemStock stock : lowStockItems) {
+                // 1. දැනටමත් ක්‍රියාකාරී (PENDING හෝ ORDERED) Replenishment එකක් තිබේදැයි පරීක්ෂා කිරීම
+                List<StockReplenishment> activeReplenishments = em.createQuery(
+                                "SELECT r FROM StockReplenishment r WHERE r.itemStock.id = :stockId " +
+                                        "AND r.status IN (:activeStatuses) ORDER BY r.createdAt DESC",
+                                StockReplenishment.class
+                        )
+                        .setParameter("stockId", stock.getId())
+                        .setParameter("activeStatuses", Arrays.asList(ReplenishmentStatus.PENDING, ReplenishmentStatus.ORDERED))
+                        .getResultList();
+
+                String assignedRef;
+
+                if (!activeReplenishments.isEmpty()) {
+                    // දැනටමත් Order එකක් තිබේ නම් එම Reference එක Alert එකට යොදා ගනී
+                    StockReplenishment existing = activeReplenishments.get(0);
+                    assignedRef = existing.getReplenishmentRef() + " (" + existing.getStatus() + ")";
+                    LOGGER.info(">>> [INVENTORY_SCHEDULER] Active replenishment order [" + assignedRef + "] already exists for SKU: " + stock.getSku() + ". Skipping duplicate generation.");
+                } else {
+                    // නව Replenishment Order එකක් සාදා Persist කිරීම
+                    assignedRef = "REP-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
+                    StockReplenishment replenishment = StockReplenishment.builder()
+                            .replenishmentRef(assignedRef)
+                            .itemStock(stock)
+                            .requestedQuantity(stock.getReorderQuantity())
+                            .status(ReplenishmentStatus.PENDING)
+                            .triggeredBy("SYSTEM_SCHEDULER")
+                            .createdAt(LocalDateTime.now())
+                            .build();
+
+                    em.persist(replenishment);
+
+                    // Automated Order Initiated Notification Dispatch කිරීම
+                    ReplenishmentAlertDto replenishmentAlertDto = ReplenishmentAlertDto.builder()
+                            .replenishmentRef(assignedRef)
+                            .sku(stock.getSku())
+                            .itemName(stock.getItemName())
+                            .warehouseCode(stock.getWarehouseCode())
+                            .requestedQuantity(stock.getReorderQuantity())
+                            .triggeredBy("SYSTEM_SCHEDULER")
+                            .build();
+
+                    notificationService.sendReplenishmentInitiatedAlert(replenishmentAlertDto);
+                }
+
+                // 2. Real-Time Shortage Alert එක නිවැරදි Replenishment Reference එක සමඟ යැවීම
                 StockShortageAlertDto shortageAlertDto = StockShortageAlertDto.builder()
                         .sku(stock.getSku())
                         .itemName(stock.getItemName())
                         .warehouseCode(stock.getWarehouseCode())
                         .currentStock(stock.getAvailableQuantity())
                         .threshold(stock.getReorderThreshold())
+                        .replenishmentRef(assignedRef)
                         .build();
 
                 notificationService.sendStockShortageAlert(shortageAlertDto);
-
-                Long pendingCount = em.createQuery(
-                                "SELECT COUNT(r) FROM StockReplenishment r WHERE r.itemStock.id = :stockId AND r.status = :status",
-                                Long.class
-                        )
-                        .setParameter("stockId", stock.getId())
-                        .setParameter("status", ReplenishmentStatus.PENDING)
-                        .getSingleResult();
-
-                if (pendingCount > 0) {
-                    LOGGER.info(">>> [INVENTORY_SCHEDULER] Active pending replenishment order already exists for SKU: " + stock.getSku() + ". Skipping duplicate order.");
-                    continue;
-                }
-
-                String refCode = "REP-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-
-                StockReplenishment replenishment = StockReplenishment.builder()
-                        .replenishmentRef(refCode)
-                        .itemStock(stock)
-                        .requestedQuantity(stock.getReorderQuantity())
-                        .status(ReplenishmentStatus.PENDING)
-                        .triggeredBy("SYSTEM_SCHEDULER")
-                        .createdAt(LocalDateTime.now())
-                        .build();
-
-                em.persist(replenishment);
-
-                ReplenishmentAlertDto replenishmentAlertDto = ReplenishmentAlertDto.builder()
-                        .replenishmentRef(refCode)
-                        .sku(stock.getSku())
-                        .itemName(stock.getItemName())
-                        .warehouseCode(stock.getWarehouseCode())
-                        .requestedQuantity(stock.getReorderQuantity())
-                        .triggeredBy("SYSTEM_SCHEDULER")
-                        .build();
-
-                notificationService.sendReplenishmentInitiatedAlert(replenishmentAlertDto);
             }
 
             em.flush();
