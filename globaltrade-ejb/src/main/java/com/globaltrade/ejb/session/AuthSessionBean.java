@@ -6,6 +6,9 @@ import com.globaltrade.core.dto.request.TokenRefreshRequestDto;
 import com.globaltrade.core.dto.response.AuthResponseDto;
 import com.globaltrade.core.entity.RefreshToken;
 import com.globaltrade.core.entity.User;
+import com.globaltrade.core.entity.VendorPerformance;
+import com.globaltrade.core.enums.UserRole;
+import com.globaltrade.core.enums.VendorStatus;
 import com.globaltrade.core.exception.BusinessRuleViolationException;
 import com.globaltrade.core.exception.InvalidInputException;
 import com.globaltrade.core.exception.SecurityAuthenticationException;
@@ -67,6 +70,23 @@ public class AuthSessionBean implements AuthService {
                 .build();
 
         em.persist(newUser);
+
+        if (request.getRole() == UserRole.VENDOR) {
+            String vendorCode = "VND-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            VendorPerformance initialPerformance = VendorPerformance.builder()
+                    .vendorUser(newUser)
+                    .vendorCode(vendorCode)
+                    .vendorName(request.getOrganizationName() != null ? request.getOrganizationName() : request.getFullName())
+                    .status(VendorStatus.ACTIVE)
+                    .onTimeDeliveryRate(100.0)
+                    .customsComplianceScore(100.0)
+                    .totalOrdersAssigned(0)
+                    .totalOrdersFulfilled(0)
+                    .onTimeDeliveries(0)
+                    .slaBreachCount(0)
+                    .build();
+            em.persist(initialPerformance);
+        }
         em.flush();
 
     }

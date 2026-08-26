@@ -1,9 +1,6 @@
 package com.globaltrade.ejb.session;
 
-import com.globaltrade.core.dto.request.ReplenishmentAlertDto;
-import com.globaltrade.core.dto.request.ShipmentDelayAlertDto;
-import com.globaltrade.core.dto.request.StockShortageAlertDto;
-import com.globaltrade.core.dto.request.TrackingUpdateAlertDto;
+import com.globaltrade.core.dto.request.*;
 import com.globaltrade.core.service.NotificationService;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionAttribute;
@@ -124,6 +121,43 @@ public class NotificationSessionBean implements NotificationService {
                         request.getWarehouseCode(),
                         request.getRequestedQuantity(),
                         request.getTriggeredBy()
+                }
+        );
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.SUPPORTS)
+    public void sendVendorPerformanceAlert(VendorPerformanceAlertDto request) {
+        if (request == null) {
+            return;
+        }
+
+        String timestamp = LocalDateTime.now().format(FORMATTER);
+
+        LOGGER.log(Level.WARNING,
+                "\n==================== [REAL-TIME VENDOR PERFORMANCE SLA ALERT] ====================\n" +
+                        " TIMESTAMP       : {0}\n" +
+                        " VENDOR CODE     : {1} ({2})\n" +
+                        " NOTIFICATION TO : {3}\n" +
+                        " SEVERITY        : [{4}]\n" +
+                        " STATUS CHANGE   : {5} -> {6}\n" +
+                        " ON-TIME RATE    : {7}%\n" +
+                        " COMPLIANCE SCORE: {8}/100\n" +
+                        " SLA BREACHES    : {9}\n" +
+                        " ALERT DETAILS   : {10}\n" +
+                        "==================================================================================",
+                new Object[]{
+                        timestamp,
+                        request.getVendorCode(),
+                        request.getVendorName(),
+                        request.getRecipientEmail(),
+                        request.getAlertSeverity(),
+                        request.getPreviousStatus(),
+                        request.getCurrentStatus(),
+                        request.getOnTimeDeliveryRate(),
+                        request.getCustomsComplianceScore(),
+                        request.getSlaBreachCount(),
+                        request.getReason()
                 }
         );
     }

@@ -27,12 +27,22 @@ public class StockReplenishment {
     @JoinColumn(name = "item_stock_id", nullable = false)
     private ItemStock itemStock;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_user_id")
+    private User assignedVendor;
+
     @Column(name = "requested_quantity", nullable = false)
     private Integer requestedQuantity;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30, nullable = false)
     private ReplenishmentStatus status;
+
+    @Column(name = "estimated_delivery_date")
+    private LocalDateTime estimatedDeliveryDate;
+
+    @Column(name = "actual_delivery_date")
+    private LocalDateTime actualDeliveryDate;
 
     @Column(name = "triggered_by", length = 50, nullable = false)
     private String triggeredBy;
