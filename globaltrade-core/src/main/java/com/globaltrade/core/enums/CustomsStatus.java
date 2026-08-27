@@ -3,8 +3,9 @@ package com.globaltrade.core.enums;
 public enum CustomsStatus {
     DRAFT,
     SUBMITTED,
-    INSPECTION_REQUIRED,
-    APPROVED,
+    UNDER_INSPECTION,
+    CLEARED,
     REJECTED,
-    HOLD
+    HELD_FOR_SANCTION,
+    DOCUMENTS_OVERDUE
 }

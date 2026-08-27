@@ -161,4 +161,39 @@ public class NotificationSessionBean implements NotificationService {
                 }
         );
     }
+
+    @Override
+    public void sendCustomsComplianceAlert(CustomsComplianceAlertDto alert) {
+        String logMessage = String.format(
+                "\n==================== [REAL-TIME CUSTOMS TRADE COMPLIANCE ALERT] ====================\n" +
+                        " TIMESTAMP           : %s\n" +
+                        " DECLARATION REF     : %s\n" +
+                        " SHIPMENT TRACKING   : %s\n" +
+                        " TRADE ROUTE         : %s -> %s\n" +
+                        " SEVERITY            : [%s]\n" +
+                        " STATUS TRANSITION   : %s -> %s\n" +
+                        " DECLARED VALUE      : $%.2f\n" +
+                        " CALCULATED DUTY     : $%.2f (Agreement: %s)\n" +
+                        " COMPLIANCE DETAILS  : %s\n" +
+                        "====================================================================================",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                alert.getDeclarationNumber(),
+                alert.getTrackingNumber(),
+                alert.getOriginCountry(),
+                alert.getDestinationCountry(),
+                alert.getAlertSeverity(),
+                alert.getPreviousStatus(),
+                alert.getCurrentStatus(),
+                alert.getDeclaredValue() != null ? alert.getDeclaredValue().doubleValue() : 0.0,
+                alert.getDutyAmount() != null ? alert.getDutyAmount().doubleValue() : 0.0,
+                alert.getTradeAgreement(),
+                alert.getComplianceIssue()
+        );
+
+        if ("CRITICAL_SANCTION".equalsIgnoreCase(alert.getAlertSeverity()) || "ESCALATION".equalsIgnoreCase(alert.getAlertSeverity())) {
+            LOGGER.log(Level.WARNING, logMessage);
+        } else {
+            LOGGER.log(Level.INFO, logMessage);
+        }
+    }
 }
