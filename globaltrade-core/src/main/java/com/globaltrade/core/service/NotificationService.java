@@ -10,4 +10,5 @@ public interface NotificationService {
     void sendStockShortageAlert(StockShortageAlertDto request);
     void sendReplenishmentInitiatedAlert(ReplenishmentAlertDto request);
     void sendVendorPerformanceAlert(VendorPerformanceAlertDto request);
+    void sendCustomsComplianceAlert(CustomsComplianceAlertDto alertDto);
 }
