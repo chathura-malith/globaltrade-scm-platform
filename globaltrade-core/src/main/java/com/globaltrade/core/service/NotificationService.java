@@ -11,4 +11,5 @@ public interface NotificationService {
     void sendReplenishmentInitiatedAlert(ReplenishmentAlertDto request);
     void sendVendorPerformanceAlert(VendorPerformanceAlertDto request);
     void sendCustomsComplianceAlert(CustomsComplianceAlertDto alertDto);
+    void sendRouteComplianceAlert(RouteComplianceAlertDto alert);
 }

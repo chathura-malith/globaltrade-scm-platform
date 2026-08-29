@@ -116,7 +116,6 @@ public class VendorSessionBean implements VendorService {
         replenishment.setEstimatedDeliveryDate(request.getEstimatedDeliveryDate());
         replenishment.setStatus(ReplenishmentStatus.ORDERED);
 
-        // Update vendor metrics
         vendor.setTotalOrdersAssigned(vendor.getTotalOrdersAssigned() + 1);
 
         try {
@@ -145,7 +144,6 @@ public class VendorSessionBean implements VendorService {
 
         User caller = findUserByUsername(username);
 
-        // Vendor security verification (Vendor can only fulfill their own assigned orders)
         if (caller.getRole() == UserRole.VENDOR) {
             if (replenishment.getAssignedVendor() == null || !replenishment.getAssignedVendor().getId().equals(caller.getId())) {
                 throw new SecurityAuthenticationException("Unauthorized: You are only allowed to fulfill orders assigned to your organization", 403);
@@ -156,13 +154,11 @@ public class VendorSessionBean implements VendorService {
         replenishment.setActualDeliveryDate(now);
         replenishment.setStatus(ReplenishmentStatus.COMPLETED);
 
-        // Calculate On-Time Delivery Metric
         boolean isOnTime = true;
         if (replenishment.getEstimatedDeliveryDate() != null && now.isAfter(replenishment.getEstimatedDeliveryDate())) {
             isOnTime = false;
         }
 
-        // Update Vendor Performance Profile
         if (replenishment.getAssignedVendor() != null) {
             VendorPerformance vendor = findVendorByUserId(replenishment.getAssignedVendor().getId());
             if (vendor != null) {
@@ -173,7 +169,6 @@ public class VendorSessionBean implements VendorService {
                     vendor.setSlaBreachCount(vendor.getSlaBreachCount() + 1);
                 }
 
-                // Dynamic On-time rate calculation
                 if (vendor.getTotalOrdersFulfilled() > 0) {
                     double rate = ((double) vendor.getOnTimeDeliveries() / vendor.getTotalOrdersFulfilled()) * 100.0;
                     vendor.setOnTimeDeliveryRate(Math.round(rate * 100.0) / 100.0);
@@ -182,7 +177,6 @@ public class VendorSessionBean implements VendorService {
             }
         }
 
-        // 1. Warehouse Inventory Inbound (Available Quantity වැඩි කිරීම)
         ItemStock itemStock = replenishment.getItemStock();
         StockAdjustmentRequestDto adjustDto = StockAdjustmentRequestDto.builder()
                 .sku(itemStock.getSku())
@@ -227,7 +221,7 @@ public class VendorSessionBean implements VendorService {
     }
 
     @Override
-    @PermitAll // Background EJB Timer එකට කිසිදු User Context එකක් නොමැතිව System Task එකක් ලෙස invoke කිරීමට ඉඩ ලබා දේ
+    @PermitAll
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void evaluateAllVendorPerformances() {
         List<VendorPerformance> allVendors = em.createQuery(
@@ -248,7 +242,6 @@ public class VendorSessionBean implements VendorService {
                 continue;
             }
 
-            // 1. Overdue Replenishments ස්වයංක්‍රීයව හඳුනාගැනීම (Automated SLA Detection)
             List<StockReplenishment> overdueOrders = em.createQuery(
                             "SELECT r FROM StockReplenishment r WHERE r.assignedVendor.id = :vid " +
                                     "AND r.status = :status AND r.estimatedDeliveryDate < :now", StockReplenishment.class)
@@ -259,26 +252,23 @@ public class VendorSessionBean implements VendorService {
 
             int activeOverdueCount = overdueOrders.size();
 
-            // 2. On-Time Delivery Rate ස්වයංක්‍රීයව නැවත ගණනය කිරීම
             if (vendor.getTotalOrdersFulfilled() > 0) {
                 double calculatedRate = ((double) vendor.getOnTimeDeliveries() / vendor.getTotalOrdersFulfilled()) * 100.0;
                 vendor.setOnTimeDeliveryRate(Math.round(calculatedRate * 100.0) / 100.0);
             }
 
-            // 3. Automated Performance Rules Engine
             String alertSeverity = null;
             String alertReason = null;
             VendorStatus nextStatus = previousStatus;
             int totalBreaches = vendor.getSlaBreachCount() + activeOverdueCount;
 
-            // Tier 3: Critical SLA Failure -> SUSPENDED
             if (vendor.getOnTimeDeliveryRate() < 60.0 || totalBreaches >= 3) {
                 nextStatus = VendorStatus.SUSPENDED;
                 alertSeverity = "CRITICAL";
                 alertReason = "Critical Performance SLA Breach: Delivery rate (" + vendor.getOnTimeDeliveryRate() +
                         "%) < 60% OR Total SLA Breaches (" + totalBreaches + ") >= 3.";
             }
-            // Tier 2: Performance Under Review -> UNDER_REVIEW
+
             else if (vendor.getCustomsComplianceScore() < 70.0 || vendor.getOnTimeDeliveryRate() < 80.0 || activeOverdueCount > 0) {
                 if (previousStatus != VendorStatus.SUSPENDED) {
                     nextStatus = VendorStatus.UNDER_REVIEW;
@@ -287,7 +277,6 @@ public class VendorSessionBean implements VendorService {
                             ") < 70 OR Active Overdue Shipments (" + activeOverdueCount + ").";
                 }
             }
-            // Tier 1: Healthy Threshold Restoration -> ACTIVE
             else if (vendor.getOnTimeDeliveryRate() >= 80.0 && vendor.getCustomsComplianceScore() >= 70.0 && activeOverdueCount == 0) {
                 if (previousStatus == VendorStatus.UNDER_REVIEW) {
                     nextStatus = VendorStatus.ACTIVE;
@@ -300,7 +289,6 @@ public class VendorSessionBean implements VendorService {
             vendor.setLastEvaluatedAt(now);
             em.merge(vendor);
 
-            // 4. Automated Alerts for Performance Issues (Real-time Console/Log Monitoring)
             if (previousStatus != nextStatus || alertSeverity != null) {
                 notificationService.sendVendorPerformanceAlert(
                         VendorPerformanceAlertDto.builder()

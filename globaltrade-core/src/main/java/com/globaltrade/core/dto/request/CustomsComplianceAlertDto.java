@@ -24,6 +24,6 @@ public class CustomsComplianceAlertDto implements Serializable {
     private BigDecimal declaredValue;
     private BigDecimal dutyAmount;
     private String tradeAgreement;
-    private String alertSeverity; // INFO, ESCALATION, CRITICAL_SANCTION
+    private String alertSeverity;
     private String complianceIssue;
 }

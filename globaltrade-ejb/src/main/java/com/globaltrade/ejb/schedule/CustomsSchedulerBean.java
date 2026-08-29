@@ -41,7 +41,6 @@ public class CustomsSchedulerBean implements Serializable {
         LOGGER.log(Level.INFO, ">>> [CUSTOMS_SCHEDULER] Starting automated customs documentation scan & deadline check...");
 
         try {
-            // 1. Proactive Documentation Generation: Find cross-border shipments missing declarations
             List<Shipment> unmanagedShipments = em.createQuery(
                             "SELECT s FROM Shipment s WHERE s.status IN (:statuses) AND NOT EXISTS (" +
                                     "  SELECT cd FROM CustomsDeclaration cd WHERE cd.shipment.id = s.id" +
@@ -63,7 +62,6 @@ public class CustomsSchedulerBean implements Serializable {
                 }
             }
 
-            // 2. Deadline & SLA Monitoring: Scan active declarations for expired submission deadlines
             customsService.evaluateCustomsDeadlinesAndCompliance();
 
         } catch (Exception e) {

@@ -168,7 +168,6 @@ public class ShipmentSessionBean implements ShipmentService {
         ShipmentStatus previousStatus = shipment.getStatus();
         ShipmentStatus newStatus = request.getStatus();
 
-        // Stock transition handling (DISPATCHED / CANCELLED)
         handleInventoryStateTransition(shipment, previousStatus, newStatus, username);
 
         ShipmentCheckpoint checkpoint = ShipmentCheckpoint.builder()
@@ -249,7 +248,6 @@ public class ShipmentSessionBean implements ShipmentService {
 
         ShipmentStatus previousStatus = shipment.getStatus();
 
-        // Stock transition handling (DISPATCHED / CANCELLED)
         handleInventoryStateTransition(shipment, previousStatus, newStatus, username);
 
         shipment.setStatus(newStatus);
@@ -282,13 +280,11 @@ public class ShipmentSessionBean implements ShipmentService {
             return;
         }
 
-        // 1. Shipment Cancel වූ විට -> Reserved Quantity එක නැවත Available Quantity එකට Release කිරීම
         if (newStatus == ShipmentStatus.CANCELLED && previousStatus == ShipmentStatus.CREATED) {
             for (ShipmentItem item : shipment.getItems()) {
                 inventoryService.releaseStock(item.getSku(), item.getQuantity(), username);
             }
         }
-        // 2. Shipment Dispatch වූ විට -> Reserved Quantity එක System එකෙන් Deduct කිරීම (Warehouse Outbound)
         else if (newStatus == ShipmentStatus.DISPATCHED && previousStatus == ShipmentStatus.CREATED) {
             for (ShipmentItem item : shipment.getItems()) {
                 inventoryService.deductReservedStock(item.getSku(), item.getQuantity(), username);

@@ -6,7 +6,7 @@ import jakarta.ejb.ApplicationException;
 public class TradeSanctionViolationException extends BaseApplicationException {
 
     public TradeSanctionViolationException(String message) {
-        super(message, 403); // Forbidden - Embargo / Sanctioned Destination
+        super(message, 403);
     }
 
     public TradeSanctionViolationException(String message, int statusCode) {

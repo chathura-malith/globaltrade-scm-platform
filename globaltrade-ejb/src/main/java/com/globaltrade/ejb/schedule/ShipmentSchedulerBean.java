@@ -38,7 +38,6 @@ public class ShipmentSchedulerBean {
     @EJB
     private AuditLogService auditLogService;
 
-    // --- REQUIREMENT 1: Automated Scheduling Service for Shipment Tracking (Programmatic Timer) ---
     @PostConstruct
     public void initializeAutomatedShipmentTrackingTimer() {
         TimerConfig timerConfig = new TimerConfig("AUTOMATED_SCHEDULED_SHIPMENT_TRACKING_TIMER", false);
@@ -83,7 +82,6 @@ public class ShipmentSchedulerBean {
         }
     }
 
-    // --- REQUIREMENT 2: Real-time Supply Chain Monitoring with Alerts for Shipment Delays (Declarative Timer) ---
     @Schedule(minute = "*/1", hour = "*", persistent = false)
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void executeRealTimeShipmentDelayMonitoring() {
@@ -113,7 +111,6 @@ public class ShipmentSchedulerBean {
             String delayReason = String.format("Shipment %s is overdue by %d hour(s). Expected: %s, Current Time: %s",
                     s.getTrackingNumber(), overdueHours, s.getEstimatedDeliveryDate(), now);
 
-            // 1. Dispatch Real-time Alert Notification
             notificationService.sendShipmentDelayAlert(ShipmentDelayAlertDto.builder()
                     .trackingNumber(s.getTrackingNumber())
                     .recipientEmail(recipientEmail)
@@ -121,7 +118,6 @@ public class ShipmentSchedulerBean {
                     .overdueHours(overdueHours)
                     .build());
 
-            // 2. Log Autonomous Audit Trail Record (REQUIRES_NEW)
             auditLogService.logAction(AuditLogRequestDto.builder()
                     .action("ALERT_SHIPMENT_DELAY_DETECTED")
                     .entityName("Shipment")

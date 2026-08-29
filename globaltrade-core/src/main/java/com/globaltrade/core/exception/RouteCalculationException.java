@@ -3,13 +3,13 @@ package com.globaltrade.core.exception;
 import jakarta.ejb.ApplicationException;
 
 @ApplicationException(rollback = true)
-public class TradeComplianceException extends BaseApplicationException {
+public class RouteCalculationException extends BaseApplicationException {
 
-    public TradeComplianceException(String message) {
+    public RouteCalculationException(String message) {
         super(message, 422);
     }
 
-    public TradeComplianceException(String message, int statusCode) {
+    public RouteCalculationException(String message, int statusCode) {
         super(message, statusCode);
     }
 }

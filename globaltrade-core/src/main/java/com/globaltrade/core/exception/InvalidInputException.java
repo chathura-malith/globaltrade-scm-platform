@@ -3,7 +3,7 @@ package com.globaltrade.core.exception;
 public class InvalidInputException extends BaseApplicationException {
 
     public InvalidInputException(String message) {
-        super(message, 400); // Default HTTP 400 Bad Request
+        super(message, 400);
     }
 
     public InvalidInputException(String message, int statusCode) {
