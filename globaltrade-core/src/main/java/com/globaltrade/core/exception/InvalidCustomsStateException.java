@@ -6,7 +6,7 @@ import jakarta.ejb.ApplicationException;
 public class InvalidCustomsStateException extends BaseApplicationException {
 
     public InvalidCustomsStateException(String message) {
-        super(message, 409); // Conflict - State Transition Invalid
+        super(message, 409);
     }
 
     public InvalidCustomsStateException(String message, int statusCode) {

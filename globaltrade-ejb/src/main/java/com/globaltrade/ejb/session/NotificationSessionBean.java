@@ -196,4 +196,34 @@ public class NotificationSessionBean implements NotificationService {
             LOGGER.log(Level.INFO, logMessage);
         }
     }
+
+    @Override
+    public void sendRouteComplianceAlert(RouteComplianceAlertDto alert) {
+        if (alert == null) return;
+        LOGGER.log(Level.INFO,
+                "\n==================== [REAL-TIME ROUTE OPTIMIZATION ALERT] ====================\n" +
+                        " TIMESTAMP           : {0}\n" +
+                        " PLAN REFERENCE      : {1}\n" +
+                        " SHIPMENT TRACKING   : {2}\n" +
+                        " ROUTE CORRIDOR      : {3} -> {4}\n" +
+                        " STRATEGY & STATUS   : {5} | {6}\n" +
+                        " DISTANCE & TRANSIT  : {7} km | {8} hours\n" +
+                        " ESTIMATED COST      : ${9}\n" +
+                        " SEVERITY & DETAILS  : [{10}] {11}\n" +
+                        "==============================================================================",
+                new Object[]{
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                        alert.getPlanReference(),
+                        alert.getTrackingNumber(),
+                        alert.getOriginCity(),
+                        alert.getDestinationCity(),
+                        alert.getStrategy(),
+                        alert.getStatus(),
+                        alert.getTotalDistanceKm(),
+                        alert.getEstimatedHours(),
+                        alert.getEstimatedCost(),
+                        alert.getAlertSeverity(),
+                        alert.getDetails()
+                });
+    }
 }

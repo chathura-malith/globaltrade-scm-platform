@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 public class VendorValidationInterceptor implements Serializable {
 
     private static final Logger LOGGER = Logger.getLogger(VendorValidationInterceptor.class.getName());
-    private static final long PERFORMANCE_THRESHOLD_MS = 200; // Performance monitoring threshold
+    private static final long PERFORMANCE_THRESHOLD_MS = 200;
 
     @PersistenceContext(unitName = "GlobalTradePU")
     private EntityManager em;
@@ -35,13 +35,11 @@ public class VendorValidationInterceptor implements Serializable {
                 || methodName.equals("updateVendorStatus")
                 || methodName.equals("getAllVendors");
 
-        // 1. Intercept Vendor-specific Request DTOs and validate status
         if (!isExemptMethod && parameters != null) {
             for (Object param : parameters) {
                 if (param instanceof AssignReplenishmentVendorRequestDto dto) {
                     validateVendorStatusByIdentifier(dto.getVendorIdentifier());
                 } else if (param instanceof String identifier && methodName.toLowerCase().contains("vendor")) {
-                    // Check if the identifier matches a vendor code or username for critical vendor actions
                     if (identifier.startsWith("VND-")) {
                         validateVendorStatusByIdentifier(identifier);
                     }
@@ -62,7 +60,6 @@ public class VendorValidationInterceptor implements Serializable {
 
         long executionDuration = System.currentTimeMillis() - startTime;
 
-        // 2. Performance Monitoring & SLA Warning
         if (executionDuration > PERFORMANCE_THRESHOLD_MS) {
             LOGGER.log(Level.WARNING,
                     "\n======================================================================\n" +

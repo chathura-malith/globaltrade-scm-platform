@@ -23,13 +23,6 @@ public class LogisticsAuditInterceptor {
         String methodName = context.getMethod().getName();
         Object[] parameters = context.getParameters();
 
-//        String callerUsername = "ANONYMOUS";
-//        if (parameters != null && parameters.length > 0) {
-//            Object lastParam = parameters[parameters.length - 1];
-//            if (lastParam instanceof String) {
-//                callerUsername = (String) lastParam;
-//            }
-//        }
 
         String callerUsername = "ANONYMOUS";
         if (parameters != null && parameters.length > 0) {

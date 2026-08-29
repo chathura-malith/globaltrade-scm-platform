@@ -48,7 +48,6 @@ public class InventorySchedulerBean {
             }
 
             for (ItemStock stock : lowStockItems) {
-                // 1. දැනටමත් ක්‍රියාකාරී (PENDING හෝ ORDERED) Replenishment එකක් තිබේදැයි පරීක්ෂා කිරීම
                 List<StockReplenishment> activeReplenishments = em.createQuery(
                                 "SELECT r FROM StockReplenishment r WHERE r.itemStock.id = :stockId " +
                                         "AND r.status IN (:activeStatuses) ORDER BY r.createdAt DESC",
@@ -61,12 +60,10 @@ public class InventorySchedulerBean {
                 String assignedRef;
 
                 if (!activeReplenishments.isEmpty()) {
-                    // දැනටමත් Order එකක් තිබේ නම් එම Reference එක Alert එකට යොදා ගනී
                     StockReplenishment existing = activeReplenishments.get(0);
                     assignedRef = existing.getReplenishmentRef() + " (" + existing.getStatus() + ")";
                     LOGGER.info(">>> [INVENTORY_SCHEDULER] Active replenishment order [" + assignedRef + "] already exists for SKU: " + stock.getSku() + ". Skipping duplicate generation.");
                 } else {
-                    // නව Replenishment Order එකක් සාදා Persist කිරීම
                     assignedRef = "REP-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
                     StockReplenishment replenishment = StockReplenishment.builder()
@@ -80,7 +77,6 @@ public class InventorySchedulerBean {
 
                     em.persist(replenishment);
 
-                    // Automated Order Initiated Notification Dispatch කිරීම
                     ReplenishmentAlertDto replenishmentAlertDto = ReplenishmentAlertDto.builder()
                             .replenishmentRef(assignedRef)
                             .sku(stock.getSku())
@@ -93,7 +89,6 @@ public class InventorySchedulerBean {
                     notificationService.sendReplenishmentInitiatedAlert(replenishmentAlertDto);
                 }
 
-                // 2. Real-Time Shortage Alert එක නිවැරදි Replenishment Reference එක සමඟ යැවීම
                 StockShortageAlertDto shortageAlertDto = StockShortageAlertDto.builder()
                         .sku(stock.getSku())
                         .itemName(stock.getItemName())
